@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShinSegi v158.0 Temporal Stasis</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600&display=swap');
+        
+        :root {
+            --stage-bg: #FFFFFF;
+            --stage-text: #334155; 
+            --vignette-color: rgba(0, 0, 0, 0);
+            --stage-blur: 0px;
+            --transition-speed: 0.8s; 
+            --accent-color: #64748b; 
+            --star-color: #93C5FD;
+            --star-active: #2563EB;
+            --thermal-glow: rgba(251, 191, 36, 0); 
+            --thermal-x: 50%;
+            --thermal-y: 50%;
+            
+            /* 任务系统配置 */
+            --mission-bg: rgba(252, 254, 255, 0.94); 
+            --mission-text: #334b6e; 
+            --mission-sub: rgba(51, 75, 110, 0.4);
+            --mission-border: rgba(59, 130, 246, 0.12);
+            --mission-item-bg: rgba(59, 130, 246, 0.04);
+            --mission-glow: rgba(59, 130, 246, 0.05);
+            --mission-width: 30rem; 
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            transition: background-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1), color 0.6s ease;
+            background: var(--stage-bg);
+            color: var(--stage-text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 语录渐入动画 */
+        @keyframes quoteFadeIn {
+            from { opacity: 0; filter: blur(10px); transform: translateY(2px); }
+            to { opacity: 1; filter: blur(0px); transform: translateY(0); }
+        }
+        .quote-animate {
+            animation: quoteFadeIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* 极速原地渐入渐出 */
+        .system-fade {
+            transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .system-hidden {
+            opacity: 0 !important;
+            transform: scale(0.99) !important;
+            pointer-events: none !important;
+        }
+        .system-visible {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .sprout-slot-fixed {
+            transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: opacity, transform;
+        }
+
+        /* 蓝调点破圆环 */
+        .release-ring {
+            position: absolute;
+            border: 2px solid #3b82f6; 
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: shockwaveRing 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            z-index: 460;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+        @keyframes shockwaveRing {
+            0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.8; border-width: 2px; }
+            100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; border-width: 0.5px; }
+        }
+
+        .thermal-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at var(--thermal-x) var(--thermal-y), var(--thermal-glow) 0%, transparent 10%);
+            z-index: 5;
+            transition: background 1.5s ease;
+        }
+
+        .unified-timer-font {
+            font-family: 'Inter', sans-serif;
+            font-variant-numeric: tabular-nums;
+            font-weight: 500; 
+            letter-spacing: -0.02em;
+            font-size: 3.5rem; 
+            line-height: 1;
+            text-align: center;
+        }
+
+        .vital-core-container {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vital-core-dot {
+            position: absolute;
+            border-radius: 50%;
+            transition: opacity 1.5s ease, transform 0.1s linear;
+        }
+
+        .top-action-bar {
+            position: fixed;
+            top: 2.5rem; 
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column; 
+            gap: 0.6rem;
+            align-items: center;
+            justify-content: center;
+            z-index: 470;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .focus-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .focus-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: var(--accent-color);
+            letter-spacing: 0.2em;
+            width: 14rem;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            opacity: 0.4;
+            border-bottom: 1px solid transparent;
+        }
+        .focus-input:focus { opacity: 1; width: 16rem; border-bottom: 1px solid rgba(51, 65, 85, 0.12); }
+        .focus-input::placeholder { font-size: 0.55rem; letter-spacing: 0.25em; opacity: 0.3; }
+
+        .floating-word-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 450; 
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+        }
+        .floating-word-container.visible { opacity: 1; }
+        .floating-word-container.is-diagnosing { opacity: 0 !important; }
+
+        .floating-word {
+            position: absolute;
+            font-weight: 200;
+            color: var(--accent-color);
+            white-space: nowrap;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+            transform: translate(-50%, -50%); 
+            transition: color 1.5s ease, filter 1.5s ease, opacity 0.8s ease;
+        }
+
+        .floating-word-container.is-paused .floating-word { animation-play-state: paused !important; }
+        .floating-word-container.is-paused .floating-word.is-anchor {
+            opacity: 0.02 !important; 
+            color: #94a3b8 !important; 
+            filter: grayscale(1) blur(0px) !important; 
+        }
+
+        .floating-word.is-anchor { 
+            animation: anchorFade 20s cubic-bezier(0.4, 0, 0.2, 1) forwards; 
+            pointer-events: none !important; 
+            z-index: 451;
+        }
+        
+        .floating-word.is-stream {
+            font-size: 0.65rem !important;
+            letter-spacing: 0.04em;
+            border-radius: 3rem; 
+            background: rgba(255, 255, 255, 0.98); 
+            padding: 0.45rem 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            animation: bubbleFade 20s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), filter 0.7s ease, color 1.5s ease;
+            will-change: opacity, transform, filter;
+            z-index: 452; 
+        }
+
+        .floating-word.is-vanishing {
+            opacity: 0 !important;
+            transform: translate(-50%, -50%) scale(1.1) !important;
+            filter: blur(10px) !important;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+            pointer-events: none !important;
+        }
+
+        @keyframes anchorFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.98); filter: blur(20px); }
+            5% { opacity: 0.05; transform: translate(-50%, -50%) scale(1); filter: blur(0px); } 
+            85% { opacity: 0.05; transform: translate(-50%, -50%) scale(1.01); filter: blur(0px); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.02); filter: blur(20px); }
+        }
+
+        @keyframes bubbleFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); filter: blur(10px); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0px); }
+            90% { opacity: 1; transform: translate(-50%, -50%) scale(1.01); filter: blur(0px); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); filter: blur(10px); }
+        }
+
+        @keyframes celestialOrbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes counterOrbit { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes starTwinkle { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } }
+
+        .sediment-orbit-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 440;
+            animation: celestialOrbit 800s linear infinite;
+            transition: opacity 1.2s ease-in-out;
+            transform-origin: center center;
+        }
+
+        .sediment-wrapper {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 40px; 
+            height: 40px;
+            transform: translate(-50%, -50%);
+            animation: counterOrbit 800s linear infinite;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .sediment-dot {
+            width: 2.5px;
+            height: 2.5px;
+            background: var(--star-color); 
+            border-radius: 50%;
+            opacity: 0.6;
+            box-shadow: 0 0 6px rgba(147, 197, 253, 0.5);
+            animation: starTwinkle 4.5s ease-in-out infinite;
+        }
+
+        .sediment-text {
+            position: absolute;
+            bottom: 30px; 
+            left: 50%; 
+            font-size: 0.65rem;
+            font-weight: 200;
+            color: #DBEAFE;
+            opacity: 0; 
+            white-space: nowrap;
+            letter-spacing: 0.1em;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: translate(-50%, 5px); 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        .viewport-frame {
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .label-slot { height: 1.5rem; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+        .timer-slot { height: 4.5rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+        .info-slot { height: 5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; max-width: 32rem; width: 100%; margin-bottom: 3rem; text-align: center; }
+
+        .timer-unified, .info-text-unified, .label-unified {
+            opacity: 1;
+            filter: blur(0px);
+            transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), filter 0.7s ease;
+        }
+
+        .state-frozen { opacity: 0 !important; filter: blur(12px) !important; pointer-events: none; }
+
+        .breathing-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            background-color: var(--vignette-color);
+            -webkit-mask-image: radial-gradient(circle, transparent 45%, black 100%);
+            mask-image: radial-gradient(circle, transparent 45%, black 100%);
+            animation: vignetteBreath 8s ease-in-out infinite;
+            transition: background-color 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1.5s ease-in-out;
+            opacity: 0;
+        }
+        @keyframes vignetteBreath { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.85; } }
+        .breathing-overlay.visible { opacity: 1; }
+
+        .bottom-action-bar {
+            position: fixed;
+            bottom: 2.5rem; 
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            justify-content: center;
+            z-index: 470;
+        }
+
+        .icon-btn-compact {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: rgba(148, 163, 184, 0.6);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .icon-btn-compact.is-active {
+            background-color: transparent; 
+            color: #2563EB; 
+            border: 2px solid #2563EB; 
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.12);
+            transform: scale(1.1);
+        }
+
+        .icon-btn-compact:hover { 
+            background-color: white; 
+            color: #2563EB; 
+            transform: scale(1.08); 
+            border-color: rgba(37, 99, 235, 0.3); 
+        }
+
+        .editable-time-unified {
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: text;
+            width: 5.2rem; 
+            color: #1e293b;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .fade-in { animation: aetherIn 0.8s ease-out forwards; }
+        @keyframes aetherIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .labs-toolbar {
+            position: fixed;
+            right: 2.5rem; 
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 470;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 0.8rem 0.4rem;
+            background: rgba(255, 255, 255, 0.6); 
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(0, 0, 0, 0.05); 
+            border-radius: 40px;
+            opacity: 0.25; 
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), background 0.6s ease;
+            width: 2.8rem;
+            align-items: center;
+        }
+        .labs-toolbar:hover { 
+            opacity: 0.95; 
+            transform: translateY(-50%) translateX(-3px); 
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+        }
+
+        .tool-icon {
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748b;
+        }
+        .tool-icon:hover { color: #2563EB; background: rgba(37, 99, 235, 0.05); }
+        .tool-icon.active { color: #2563EB; background: rgba(37, 99, 235, 0.1); }
+        
+        .tool-icon.disabled { color: #cbd5e1 !important; opacity: 0.5; cursor: not-allowed !important; transform: none !important; background: transparent !important; }
+
+        /* --- 任务系统核心布局：精准吸附 & 蓝调文字 --- */
+        .notion-block {
+            background: var(--mission-bg); 
+            backdrop-filter: blur(35px);
+            border: 1px solid var(--mission-border);
+            border-radius: 1.2rem;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.03), inset 0 0 15px var(--mission-glow); 
+            transition: background 0.6s ease, opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .mission-list-area.is-anchored {
+            top: auto !important;
+            left: 2.5rem !important;
+        }
+
+        .mission-input-area {
+            position: fixed;
+            bottom: 2.5rem; 
+            left: 2.5rem;   
+            z-index: 500;
+            padding: 0;
+            border-radius: 2.5rem;
+            display: flex;
+            align-items: center; 
+            width: var(--mission-width);
+            background: var(--mission-bg);
+            border: 1px solid var(--mission-border);
+            backdrop-filter: blur(25px);
+            overflow: hidden;
+            min-height: 2.2rem; 
+            height: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .mission-list-area {
+            position: fixed;
+            width: var(--mission-width);
+            z-index: 480; 
+            user-select: none;
+            will-change: left, top, opacity, bottom;
+        }
+
+        .mission-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.1rem 1.4rem 0.6rem;
+            cursor: grab;
+        }
+        .mission-header-row:active { cursor: grabbing; }
+
+        .unified-action-btn {
+            color: var(--mission-text); 
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            padding: 4px;
+        }
+        .unified-action-btn:hover { background: rgba(0, 0, 0, 0.04); transform: scale(1.1); }
+
+        .mission-input-row {
+            display: flex;
+            align-items: center; 
+            flex-wrap: nowrap;
+            gap: 0.15rem;
+            width: 100%;
+            height: 100%;
+            padding: 0 1.2rem 0 0; 
+        }
+
+        .input-arc-placeholder {
+            width: 2.2rem;
+            height: 2.2rem; 
+            flex-shrink: 0;
+            background: transparent; 
+            margin-right: 0.5rem;
+        }
+
+        .blank-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 0.75rem;
+            color: var(--mission-text); 
+            transition: color 0.8s ease;
+            resize: none;
+            padding: 0;
+            margin: 0;
+        }
+        .blank-input::placeholder { color: var(--mission-sub); opacity: 0.5; }
+        .slot-input { width: 1.6rem; text-align: center; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+        .content-blank { 
+            flex: 1; 
+            padding-left: 0.6rem; 
+            font-weight: 400; 
+            min-width: 0; 
+            overflow: hidden; 
+            line-height: 2.2rem; 
+            max-height: 10rem;
+        }
+        .content-blank.is-multiline { line-height: 1.5; padding: 0.5rem 0 0.5rem 0.6rem; }
+        
+        .sep-line { color: var(--mission-sub); font-size: 0.7rem; opacity: 0.6; flex-shrink: 0; }
+
+        .task-list-container {
+            min-height: 11rem; /* 保持默认长度，避免在任务少时缩进 */
+            max-height: 16rem; /* 超过此高度后开始滚动 */
+            overflow-y: auto;
+            padding: 0 0.6rem 0.8rem; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-row {
+            display: flex;
+            align-items: flex-start; 
+            gap: 0.7rem;
+            padding: 0.45rem 0.8rem; 
+            margin-bottom: 0.15rem; 
+            border-radius: 0.8rem;
+            cursor: pointer;
+            transition: background 0.25s ease, transform 0.15s;
+        }
+        .task-row:hover { background: var(--mission-item-bg); }
+
+        .check-circle {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            border: 1.5px solid var(--mission-sub);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+        .task-row.completed .check-circle { background: #10b981; border-color: #10b981; }
+
+        .task-content-text {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--mission-text); 
+            line-height: 1.4;
+            transition: color 0.8s ease, opacity 0.3s;
+            flex: 1;
+            white-space: pre-wrap; 
+            word-break: break-word; 
+            overflow-wrap: break-word;
+        }
+        .task-time-text {
+            font-size: 0.6rem;
+            color: var(--mission-text); 
+            opacity: 0.35;
+            font-variant-numeric: tabular-nums;
+            margin-left: 0.8rem;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+            margin-top: 0.2rem;
+        }
+        .mode-rest .task-time-text { opacity: 0.6; }
+
+        .task-row.completed .task-content-text { text-decoration: line-through; opacity: 0.3; }
+
+        .diagnose-modal {
+            background: rgba(255, 255, 255, 0.99);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.1);
+        }
+        .grain-texture {
+            position: fixed;
+            inset: -50%; width: 200%; height: 200%;
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 6;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3BaseFilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/baseFilter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--mission-sub); opacity: 0.25; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ICONS = {
+            plus: <path d="M12 5v14M5 12h14" />,
+            minus: <path d="M5 12h14" />,
+            play: <path d="M5 3l14 9-14 9V3z" />,
+            pause: <path d="M6 4h4v16H6zm8 0h4v16h-4z" />,
+            skip: <path d="M5 4l10 8-10 8V4zm14 1v14" />,
+            waves: <path d="M2 12s3-2 6-2 6 4 9 4 6-2 6-2" />,
+            arrow: <path d="M5 12h14M13 5l7 7-7 7" />,
+            eye: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
+            eyeOff: <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" x2="22" y1="2" y2="22" /></>,
+            home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>,
+            vignette: <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />,
+            target: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>,
+            list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+            trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />,
+            check: <path d="M20 6 9 17l-5-5" />,
+            close: <path d="M18 6L6 18M6 6l12 12" />,
+            sprout: <path d="M7 20h10 M12 20v-8 M12 12c2-2 5-1 5-1 M12 12c-2-2-5-1-5-1" />,
+        };
+
+        const Icon = ({ name, size = 16, className = "", onClick }) => (
+            <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} onClick={onClick}>
+                {ICONS[name]}
+            </svg>
+        );
+
+        const VitalCore = ({ mode, thermalEnergy }) => {
+            const [pos, setPos] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+            const [danceTime, setDanceTime] = useState(0);
+            useEffect(() => {
+                const handleMouseMove = (e) => setPos({ x: e.clientX, y: e.clientY });
+                window.addEventListener('mousemove', handleMouseMove);
+                return () => window.removeEventListener('mousemove', handleMouseMove);
+            }, []);
+            useEffect(() => {
+                let frame;
+                const animate = () => { setDanceTime(prev => prev + 0.015); frame = requestAnimationFrame(animate); };
+                frame = requestAnimationFrame(animate);
+                return () => cancelAnimationFrame(frame);
+            }, []);
+            const heatFactor = thermalEnergy;
+            const isDark = mode === 'REST';
+            const isDiagnose = mode.includes('CHECKIN');
+            const getDotStyle = (index) => {
+                const angleOffset = (Math.PI * 2 / 3) * index;
+                const radius = 1.2 + heatFactor * 24; 
+                const orbitSpeed = 0.7 + index * 0.3 + heatFactor * 0.6; 
+                const dx = Math.cos(danceTime * orbitSpeed + angleOffset) * radius;
+                const dy = Math.sin(danceTime * (orbitSpeed * 0.9) + angleOffset * 1.5) * (radius * 0.95);
+                let r, g, b;
+                if (isDark) { r = 255; g = Math.floor(255 - (heatFactor * 25)); b = Math.floor(255 - (heatFactor * 65)); }
+                else { r = Math.floor(37 + (214 * heatFactor)); g = Math.floor(99 + (92 * heatFactor)); b = Math.floor(235 - (199 * heatFactor)); }
+                return {
+                    width: `${[5, 3, 4][index]}px`, height: `${[5, 3, 4][index]}px`,
+                    transform: `translate3d(${dx}px, ${dy}px, 0) scale(${1 + heatFactor * 0.6})`,
+                    background: `rgb(${r}, ${g}, ${b})`,
+                    boxShadow: `0 0 ${8 + heatFactor * 12}px rgba(${r}, ${g}, ${b}, ${0.4 + heatFactor * 0.4})`,
+                    opacity: isDiagnose ? 0.2 : (mode === 'PAUSED' ? 0.05 : (mode === 'SETUP' ? 0.2 : 0.8)),
+                };
+            };
+            return (
+                <div className="vital-core-container" style={{ left: pos.x - 40, top: pos.y - 40 }}>
+                    {[0, 1, 2].map(i => <div key={i} className="vital-core-dot" style={getDotStyle(i)} />)}
+                </div>
+            );
+        };
+
+        const SpiritualSediment = ({ residue, isVisible }) => {
+            return (
+                <div className="sediment-orbit-layer" style={{ opacity: isVisible ? 1 : 0 }}>
+                    {residue.map((item) => (
+                        <div key={item.id} className="sediment-wrapper" style={{ left: `${item.x}%`, top: `${item.y}%` }}>
+                            <div className="sediment-dot" style={{ background: 'var(--star-color)', boxShadow: `0 0 6px rgba(147, 197, 253, 0.5)` }} />
+                            <div className="sediment-text">{item.text}</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const ParticleCanvas = ({ mode }) => {
+            const canvasRef = useRef(null);
+            const particlesRef = useRef([]);
+            useEffect(() => {
+                const canvas = canvasRef.current; const ctx = canvas.getContext('2d'); let width, height, animationId;
+                const resize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
+                window.addEventListener('resize', resize); resize();
+                if (particlesRef.current.length === 0) { particlesRef.current = Array.from({ length: 140 }, () => ({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, size: Math.random() * 1.4 + 0.4, vx: (Math.random() - 0.5) * 0.08, vy: (Math.random() - 0.5) * 0.08, alpha: Math.random() * 0.12 + 0.05 })); }
+                const animate = () => {
+                    ctx.clearRect(0, 0, width, height);
+                    const colorStr = mode === 'REST' ? '255,255,255' : (mode === 'PAUSED' ? '148, 163, 184' : '37,99,235');
+                    particlesRef.current.forEach(p => {
+                        const multiplier = mode === 'PAUSED' ? 0.01 : (mode === 'REST' ? 0.35 : 1);
+                        p.x += p.vx * multiplier; p.y += (p.vy + (mode === 'REST' ? 0.03 : 0)) * multiplier;
+                        if (p.x > width) p.x = 0; if (p.x < 0) p.x = width;
+                        if (p.y > height) p.y = 0; if (p.y < 0) p.y = height;
+                        ctx.fillStyle = `rgba(${colorStr}, ${p.alpha * ((mode === 'RUNNING' || mode === 'PAUSED') ? 3 : 1.2)})`; 
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                    });
+                    animationId = requestAnimationFrame(animate);
+                };
+                animate(); return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animationId); };
+            }, [mode]);
+            return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />;
+        };
+
+        const FloatingConsciousness = ({ anchorWord, thoughtStreamId, thoughtStreamText, isVisible, forcedCoords, isDiagnosing, mode }) => {
+            const [instances, setInstances] = useState([]);
+            const [ripples, setRipples] = useState([]); 
+            const modeRef = useRef(mode); 
+            useEffect(() => { modeRef.current = mode; }, [mode]);
+            useEffect(() => { if (isDiagnosing || mode === 'SETUP') setInstances([]); }, [isDiagnosing, mode]);
+            const generateValidCoords = () => {
+                let x, y, dist; let attempts = 0;
+                do { x = 5 + Math.random() * 90; y = 10 + Math.random() * 80; dist = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(y - 50, 2)); attempts++; } while (dist < 35 && attempts < 50); 
+                return { x, y };
+            };
+            useEffect(() => {
+                if (!anchorWord) { setInstances(prev => prev.filter(i => i.type !== 'anchor')); return; }
+                const spawnAnchor = () => {
+                    if (modeRef.current === 'PAUSED') return; 
+                    const id = `anchor-${Date.now()}`;
+                    const { x, y } = generateValidCoords();
+                    setInstances(prev => [...prev.filter(i => i.type !== 'anchor'), { id, text: anchorWord, x, y, size: 9 + Math.random() * 3, type: 'anchor', vanishing: false }]);
+                };
+                spawnAnchor();
+                const interval = setInterval(spawnAnchor, 10000); 
+                return () => clearInterval(interval);
+            }, [anchorWord]);
+            useEffect(() => {
+                if (!thoughtStreamText || !thoughtStreamId || isDiagnosing || mode === 'SETUP') return;
+                const coords = forcedCoords || generateValidCoords();
+                const id = `thought-${thoughtStreamId}`;
+                setInstances(prev => { if (prev.some(ins => ins.id === id)) return prev; return [...prev, { id, text: thoughtStreamText, x: coords.x, y: coords.y, type: 'stream', vanishing: false }]; });
+                const timer = setTimeout(() => { setInstances(prev => prev.filter(ins => ins.id !== id)); }, 20000);
+                return () => clearTimeout(timer);
+            }, [thoughtStreamId, thoughtStreamText, forcedCoords, isDiagnosing, mode]);
+
+            const handleWordClick = (id, x, y) => {
+                if (mode === 'PAUSED') return;
+                const rippleId = Date.now();
+                setRipples(prev => [...prev, { id: rippleId, x, y }]);
+                setInstances(prev => prev.map(ins => ins.id === id ? { ...ins, vanishing: true } : ins));
+                setTimeout(() => setRipples(prev => prev.filter(r => r.id !== rippleId)), 450);
+                setTimeout(() => { setInstances(prev => prev.filter(ins => ins.id !== id)); }, 450);
+            };
+
+            return (
+                <div className={`floating-word-container ${isVisible ? 'visible' : ''} ${isDiagnosing ? 'is-diagnosing' : ''} ${mode === 'PAUSED' ? 'is-paused' : ''}`}>
+                    {instances.map(ins => (
+                        <div key={ins.id} onClick={() => ins.type === 'stream' && handleWordClick(ins.id, ins.x, ins.y)} className={`floating-word ${ins.type === 'anchor' ? 'is-anchor' : 'is-stream'} ${ins.vanishing ? 'is-vanishing' : ''}`} style={{ left: `${ins.x}%`, top: `${ins.y}%`, fontSize: ins.type === 'anchor' ? `${ins.size}rem` : 'inherit' }}>{ins.text}</div>
+                    ))}
+                    {ripples.map(r => ( <div key={r.id} className="release-ring" style={{ left: `${r.x}%`, top: `${r.y}%`, width: '60px', height: '60px' }} /> ))}
+                </div>
+            );
+        };
+
+        const SproutGrowth = ({ progress, isVisible, mode, isVignetteOn }) => {
+            const stage = Math.min(Math.floor(progress * 20), 20);
+            const isDark = mode === 'REST';
+            const color = (isDark || isVignetteOn) ? '#FFF' : '#10B981'; 
+            return (
+                <div className={`sprout-slot-fixed ${isVisible ? 'opacity-90 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`} style={{ top: '2.5rem', right: '2.5rem', position: 'fixed', zIndex: 470 }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" 
+                         style={{ filter: (isDark || isVignetteOn) ? 'drop-shadow(0 0 8px rgba(255,255,255,0.4))' : 'none' }}>
+                        {stage === 20 && <circle cx="12" cy="12" r="10" strokeWidth="0.5" strokeDasharray="2 4" className="animate-spin" style={{ animationDuration: '8s' }} />}
+                        <path d="M5 20h14" strokeOpacity="0.2" />
+                        {stage < 4 && <circle cx="12" cy={18 - stage * 0.5} r={1 + stage * 0.2} fill={color} fillOpacity={0.6} />}
+                        {stage >= 4 && <path d={`M12 20v-${Math.min((stage - 3) * 1.2, 8)}`} />}
+                        {stage >= 8 && <path d={`M12 ${20 - Math.min((stage-3)*1.2, 8)} c 2 -2, ${Math.min((stage-7)*1, 4)} -1, ${Math.min((stage-7)*1.2, 5)} -1`} />}
+                        {stage >= 13 && <path d={`M12 ${20 - Math.min((stage-3)*1.2, 8)} c -2 -2, -${Math.min((stage-12)*1, 4)} -1, -${Math.min((stage-12)*1.2, 5)} -1`} />}
+                        {stage >= 16 && (
+                            <>
+                                <path d={`M12 ${20 - 8} v-${Math.min((stage-15)*1.2, 5)}`} />
+                                {stage >= 18 && (
+                                    <>
+                                        <path d={`M12 ${12 - (stage-15)*1.2} c 1 -1, 2 0, 3 -1`} strokeWidth="1" />
+                                        <path d={`M12 ${12 - (stage-15)*1.2} c -1 -1, -2 0, -3 -1`} strokeWidth="1" />
+                                    </>
+                                )}
+                            </>
+                        )}
+                        {stage === 20 && <circle cx="12" cy="6" r="1" fill={color} className="animate-pulse" />}
+                    </svg>
+                </div>
+            );
+        };
+
+        function App() {
+            const [mode, setMode] = useState('SETUP'); 
+            const [duration, setDuration] = useState(45);
+            const [timeLeft, setTimeLeft] = useState(45 * 60);
+            const [fatigue, setFatigue] = useState(0);
+            const [restPlan, setRestPlan] = useState(null);
+            const [quote, setQuote] = useState("");
+            const [isTextVisible, setIsTextVisible] = useState(true);
+            const [isVignetteOn, setIsVignetteOn] = useState(true); 
+            const [isFocusAnchorOn, setIsFocusAnchorOn] = useState(false);
+            const [isSproutOn, setIsSproutOn] = useState(false); 
+            const [tempAnchor, setTempAnchor] = useState(""); 
+            const [activeAnchor, setActiveAnchor] = useState(""); 
+            const [tempStream, setTempStream] = useState(""); 
+            const [activeStreamId, setActiveStreamId] = useState(0);
+            const [activeStreamText, setActiveStreamText] = useState("");
+            const [activeStreamCoords, setActiveStreamCoords] = useState(null);
+            const [sediment, setSediment] = useState([]);
+            const [heat, setHeat] = useState(0); 
+            
+            const [tasks, setTasks] = useState([]);
+            const [isTaskSystemOpen, setIsTaskSystemOpen] = useState(false);
+            const [hasDragged, setHasDragged] = useState(false); 
+            const [inputH1, setInputH1] = useState("");
+            const [inputM1, setInputM1] = useState("");
+            const [inputH2, setInputH2] = useState("");
+            const [inputM2, setInputM2] = useState("");
+            const [inputContent, setInputContent] = useState("");
+            const [inputHeight, setInputHeight] = useState(35); 
+            
+            const refH1 = useRef(null);
+            const refM1 = useRef(null);
+            const refH2 = useRef(null);
+            const refM2 = useRef(null);
+            const refContent = useRef(null);
+            const refInputArea = useRef(null);
+
+            const [listPos, setListPos] = useState({ x: 40, y: 0 });
+            const isDragging = useRef(false);
+            const dragStart = useRef({ x: 0, y: 0 });
+
+            const lastMoveTime = useRef(Date.now());
+            const mousePosRef = useRef({ x: 50, y: 50 }); 
+            const timer = useRef(null);
+
+            // 诊断系统常量
+            const SENSING_BODY = [ { label: "呼吸平稳，身体轻盈如水", score: 0 }, { label: "背部微紧，仍在可控范围", score: 1 }, { label: "肌肉僵硬，动作开始迟缓", score: 2 }, { label: "眼睛干涩，渴望屏息凝神", score: 3 }, { label: "身心沉重，急需切断输入", score: 4 } ];
+            const SENSING_MIND = [ { label: "意识通透，思维逻辑极简", score: 0 }, { label: "专注持续，偶有微波掠过", score: 1 }, { label: "杂念渐起，效率开始波动", score: 2 }, { label: "思绪模糊，难以建立连接", score: 3 }, { label: "脑海空洞，专注彻底瓦解", score: 4 } ];
+
+            // --- 语录库 ---
+            const QUOTES = [
+                "水源不在远方，在每一杯喝下的水中。",
+                "工作是暂时的攀附，生命是永恒的根基。",
+                "在极速中戛然而止，才是文明的意志。",
+                "没必要把自己献祭给作业。",
+                "健康比 GPA 昂贵。",
+                "不加节制的求知欲，也是一种贪欲。",
+                "自我剥削常被伪装成一种上进。",
+                "不要做惯性的努力。",
+                "水流不争先，争的是滔滔不绝。",
+                "缺水的根系，撑不起向上的野心。",
+                "别做那个为了赶路而杀马的人。",
+                "枯荣有时。",
+                "活着比发光重要。",
+                "借势上青云。",
+                "才华不是用来祭献的。",
+                "情深不寿。",
+                "不如绕指柔。",
+                "在脑子里的，那叫妄念。"
+            ];
+
+            const isDiagnosing = mode.includes('CHECKIN');
+
+            // --- 语录自动轮换逻辑：仅专注时每20秒更换，带渐入动画 ---
+            useEffect(() => {
+                if (mode === 'RUNNING') {
+                    const quoteInterval = setInterval(() => {
+                        setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+                    }, 20000); // 20秒
+                    return () => clearInterval(quoteInterval);
+                }
+            }, [mode]);
+
+            useEffect(() => {
+                if (refContent.current && isTaskSystemOpen) {
+                    refContent.current.style.height = 'auto'; 
+                    const scrollH = refContent.current.scrollHeight;
+                    const isMulti = scrollH > 35;
+                    refContent.current.classList.toggle('is-multiline', isMulti);
+                    refContent.current.style.height = (isMulti ? scrollH : 35) + 'px';
+                    if (refInputArea.current) setInputHeight(refInputArea.current.offsetHeight);
+                }
+            }, [inputContent, isTaskSystemOpen]);
+
+            useEffect(() => {
+                const handleMove = (e) => {
+                    lastMoveTime.current = Date.now();
+                    mousePosRef.current = { 
+                        x: (e.clientX / window.innerWidth) * 100, 
+                        y: (e.clientY / window.innerHeight) * 100 
+                    };
+                    if (isDragging.current) {
+                        setListPos({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
+                    }
+                };
+                const handleMouseUp = () => { isDragging.current = false; };
+                window.addEventListener('mousemove', handleMove);
+                window.addEventListener('mouseup', handleMouseUp);
+                
+                const interval = setInterval(() => {
+                    const elapsed = Date.now() - lastMoveTime.current;
+                    if (elapsed > 3000) {
+                        document.documentElement.style.setProperty('--thermal-x', `${mousePosRef.current.x}%`);
+                        document.documentElement.style.setProperty('--thermal-y', `${mousePosRef.current.y}%`);
+                        setHeat(prev => Math.min(prev + 0.045, 1));
+                    } else {
+                        setHeat(prev => Math.max(prev - 0.035, 0));
+                    }
+                }, 100);
+                
+                return () => { 
+                    window.removeEventListener('mousemove', handleMove); 
+                    window.removeEventListener('mouseup', handleMouseUp);
+                    clearInterval(interval); 
+                };
+            }, []);
+
+            useEffect(() => {
+                const themes = { 
+                    SETUP: { bg: '#FFFFFF', text: '#334155', blur: '8px', mBg: 'rgba(252, 254, 255, 0.94)', mTxt: '#2563eb', mSub: 'rgba(51, 65, 85, 0.4)', mBord: 'rgba(59, 130, 246, 0.12)', mItem: 'rgba(59, 130, 246, 0.04)', mGlow: 'rgba(59, 130, 246, 0.05)' }, 
+                    RUNNING: { bg: '#F9FBFF', text: '#1e293b', blur: '0px', mBg: 'rgba(252, 254, 255, 0.94)', mTxt: '#2563eb', mSub: 'rgba(51, 65, 85, 0.4)', mBord: 'rgba(59, 130, 246, 0.12)', mItem: 'rgba(59, 130, 246, 0.04)', mGlow: 'rgba(59, 130, 246, 0.05)' }, 
+                    PAUSED: { bg: '#FCFDFF', text: '#334155', blur: '0px', mBg: 'rgba(252, 254, 255, 0.94)', mTxt: '#2563eb', mSub: 'rgba(51, 65, 85, 0.4)', mBord: 'rgba(59, 130, 246, 0.12)', mItem: 'rgba(59, 130, 246, 0.04)', mGlow: 'rgba(59, 130, 246, 0.05)' }, 
+                    REST: { bg: '#080A12', text: '#F8FAFC', blur: '0px', mBg: 'rgba(15, 23, 42, 0.88)', mTxt: '#BFDBFE', mSub: 'rgba(191, 219, 254, 0.4)', mBord: 'rgba(59, 130, 246, 0.15)', mItem: 'rgba(255, 255, 255, 0.03)', mGlow: 'rgba(59, 130, 246, 0.08)' } 
+                };
+                const t = themes[mode] || themes.SETUP;
+                document.documentElement.style.setProperty('--stage-bg', t.bg); 
+                document.documentElement.style.setProperty('--stage-text', t.text);
+                document.documentElement.style.setProperty('--mission-bg', t.mBg);
+                
+                const isRestMode = t.bg.includes('080A12');
+                document.documentElement.style.setProperty('--mission-text', isRestMode ? '#BFDBFE' : '#334b6e'); 
+                document.documentElement.style.setProperty('--mission-sub', isRestMode ? 'rgba(191, 219, 254, 0.4)' : t.mSub);
+                document.documentElement.style.setProperty('--mission-border', t.mBord);
+                document.documentElement.style.setProperty('--mission-item-bg', t.mItem);
+                document.documentElement.style.setProperty('--mission-glow', t.mGlow);
+
+                const getVignetteColor = (m, isOn) => {
+                    if (!isOn) return 'rgba(0,0,0,0)'; if (m === 'SETUP') return 'rgba(186, 230, 253, 0.4)'; if (m === 'RUNNING') return 'rgba(37, 99, 235, 0.45)'; 
+                    if (m === 'PAUSED') return 'rgba(148, 163, 184, 0.2)'; if (m === 'REST') return 'rgba(0, 0, 0, 0.95)'; return 'rgba(0,0,0,0)';
+                };
+                document.documentElement.style.setProperty('--vignette-color', getVignetteColor(mode, isVignetteOn));
+                document.documentElement.style.setProperty('--accent-color', isRestMode ? '#94a3b8' : '#64748b');
+                document.documentElement.style.setProperty('--thermal-glow', `rgba(251, 191, 36, ${heat * 0.22})`);
+            }, [mode, isVignetteOn, heat]);
+
+            useEffect(() => {
+                if (mode === 'RUNNING' || mode === 'REST') { 
+                    timer.current = setInterval(() => { setTimeLeft(prev => { if (prev <= 1) { onComplete(); return 0; } return prev - 1; }); }, 1000); 
+                } 
+                else { clearInterval(timer.current); } return () => clearInterval(timer.current);
+            }, [mode]);
+
+            const onComplete = () => { if (mode === 'RUNNING') setMode('CHECKIN_1'); else handleFastReset(); };
+            const handleFastReset = () => { setMode('SETUP'); setTimeLeft(duration * 60); setFatigue(0); setRestPlan(null); setActiveAnchor(""); setTempAnchor(""); setActiveStreamText(""); setActiveStreamId(0); setSediment([]); };
+            
+            const toggleTimer = () => { 
+                const nextIsRunning = mode !== 'RUNNING';
+                if (nextIsRunning) {
+                    setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+                }
+                setMode(nextIsRunning ? 'RUNNING' : 'PAUSED'); 
+            };
+
+            const handleCheckin = (score, next) => { 
+                const total = fatigue + score; setFatigue(total); 
+                if (next) setMode(next); 
+                else { 
+                    let plan = { title: "微光小憩", dur: 5, text: "此刻，你只需要一小口呼吸。" }; 
+                    if (total >= 2) plan = { title: "清泉回能", dur: 10, text: "慢下来，去感受空气的流动。" }; 
+                    if (total >= 4) plan = { title: "静谧修复", dur: 20, text: "请起身离开，听听远方的声音。" }; 
+                    if (total >= 7) plan = { title: "归零重启", dur: 30, text: "你需要彻底的静默。请闭眼，放空一切。" }; 
+                    setRestPlan(plan); setTimeLeft(plan.dur * 60); setMode('REST'); 
+                } 
+            };
+
+            const formatTimePart = (h, m) => {
+                const hh = parseInt(h || '0'); const mm = parseInt(m || '0');
+                if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+                return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+            };
+
+            const addNewTask = () => {
+                if (!inputContent.trim()) return;
+                const time1 = formatTimePart(inputH1, inputM1);
+                if (!time1) return; 
+                let time2 = formatTimePart(inputH2, inputM2);
+                const t1Num = parseInt(inputH1 || '0') * 100 + parseInt(inputM1 || '0');
+                const t2Num = time2 ? (parseInt(inputH2 || '0') * 100 + parseInt(inputM2 || '0')) : 9999;
+                if (t2Num < t1Num) return; 
+                const newTask = { id: Date.now(), timeDisplay: `${time1}-${time2 || '??:??'}`, content: inputContent.trim(), startTime: time1, completed: false };
+                setTasks(prev => [...prev, newTask].sort((a, b) => a.startTime.localeCompare(b.startTime)));
+                setInputH1(""); setInputM1(""); setInputH2(""); setInputM2(""); setInputContent("");
+                if (refContent.current) {
+                    refContent.current.style.height = '35px';
+                    setTimeout(() => { if (refInputArea.current) setInputHeight(refInputArea.current.offsetHeight); }, 10);
+                }
+                refH1.current?.focus();
+            };
+
+            const deleteTask = (id) => {
+                setTasks(prev => prev.filter(t => t.id !== id));
+            };
+
+            const handleHInput = (val, setter, nextRef) => {
+                const v = val.replace(/\D/g, '').slice(0, 2);
+                setter(v);
+                if (v.length === 2 && nextRef?.current) nextRef.current.focus();
+            };
+            const handleMInput = (val, setter, nextRef) => {
+                const v = val.replace(/\D/g, '').slice(0, 2);
+                setter(v);
+                if (v.length === 2 && nextRef?.current) nextRef.current.focus();
+            };
+
+            const handleKeyDown = (e, currentVal, prevRef) => {
+                if (e.key === 'Backspace' && !currentVal) {
+                    if (prevRef?.current) { e.preventDefault(); prevRef.current.focus(); }
+                } else if (e.key === 'Enter') {
+                    if (!e.shiftKey) { e.preventDefault(); addNewTask(); }
+                }
+            };
+
+            const handleStreamSubmitLocal = () => {
+                if (tempStream.trim()) {
+                    const x = 10 + Math.random() * 80;
+                    const y = 15 + Math.random() * 70;
+                    const id = Date.now() + Math.random();
+                    setActiveStreamText(tempStream); setActiveStreamId(id); setActiveStreamCoords({x,y});
+                    setSediment(prev => [...prev, { id, text: tempStream, x, y }]);
+                    setTempStream("");
+                }
+            };
+
+            const startDrag = (e) => { 
+                if (!hasDragged) {
+                    const rect = e.currentTarget.parentElement.getBoundingClientRect();
+                    setListPos({ x: rect.left, y: rect.top });
+                    dragStart.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                    setHasDragged(true);
+                } else { dragStart.current = { x: e.clientX - listPos.x, y: e.clientY - listPos.y }; }
+                isDragging.current = true; 
+            };
+
+            const toggleTaskComplete = (id) => { setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t)); };
+
+            const closeTaskSystem = () => {
+                setIsTaskSystemOpen(false);
+                setTimeout(() => setHasDragged(false), 300);
+            };
+
+            const isLabsDisabled = mode !== 'RUNNING' && mode !== 'PAUSED';
+            const isLabelFrozen = isDiagnosing;
+            const isTimerFrozen = isDiagnosing || mode === 'PAUSED';
+            const isQuoteFrozen = isDiagnosing || mode === 'PAUSED' || !isTextVisible;
+
+            return (
+                <div className="relative min-h-screen select-none overflow-hidden text-slate-800">
+                    <ParticleCanvas mode={mode} />
+                    <div className="thermal-layer" />
+                    <VitalCore mode={mode} thermalEnergy={heat} />
+                    <div className={`breathing-overlay ${isVignetteOn && mode !== 'PAUSED' ? 'visible' : ''}`} />
+                    <div className="grain-texture" />
+                    
+                    <SpiritualSediment residue={sediment} isVisible={mode === 'REST' && isTextVisible} />
+                    <FloatingConsciousness anchorWord={activeAnchor} thoughtStreamId={activeStreamId} thoughtStreamText={activeStreamText} forcedCoords={activeStreamCoords} isVisible={isFocusAnchorOn && mode !== 'REST' && isTextVisible} isDiagnosing={isDiagnosing} mode={mode} />
+                    
+                    <SproutGrowth progress={(duration * 60 - timeLeft) / (duration * 60)} mode={mode} isVignetteOn={isVignetteOn} isVisible={isSproutOn && !isDiagnosing && (mode !== 'CHECKIN_1' && mode !== 'REST')} />
+                    
+                    {mode !== 'SETUP' && (
+                        <div className="fixed top-10 left-10 z-[501]">
+                            <button className="icon-btn-compact" onClick={handleFastReset}><Icon name="home" size={16} /></button>
+                        </div>
+                    )}
+
+                    {!isTaskSystemOpen && !isDiagnosing && (
+                        <div className="fixed bottom-10 left-10 z-[500]">
+                            <button className="icon-btn-compact" onClick={() => setIsTaskSystemOpen(true)}><Icon name="list" size={16} /></button>
+                        </div>
+                    )}
+
+                    <div ref={refInputArea} className={`mission-input-area system-fade ${isTaskSystemOpen && !isDiagnosing ? 'system-visible' : 'system-hidden'}`}>
+                        <div className="mission-input-row">
+                            <div className="input-arc-placeholder"></div>
+                            <input ref={refH1} type="text" placeholder="H" className="blank-input slot-input" value={inputH1} onChange={(e) => handleHInput(e.target.value, setInputH1, refM1)} onKeyDown={(e) => handleKeyDown(e, inputH1, null)} />
+                            <span className="sep-line">:</span>
+                            <input ref={refM1} type="text" placeholder="M" className="blank-input slot-input" value={inputM1} onChange={(e) => handleMInput(e.target.value, setInputM1, refH2)} onKeyDown={(e) => handleKeyDown(e, inputM1, refH1)} />
+                            <span className="mx-1 opacity-20" style={{ color: 'var(--mission-text)' }}>/</span>
+                            <input ref={refH2} type="text" placeholder="H" className="blank-input slot-input" value={inputH2} onChange={(e) => handleHInput(e.target.value, setInputH2, refM2)} onKeyDown={(e) => handleKeyDown(e, inputH2, refM1)} />
+                            <span className="sep-line">:</span>
+                            <input ref={refM2} type="text" placeholder="M" className="blank-input slot-input" value={inputM2} onChange={(e) => handleMInput(e.target.value, setInputM2, refContent)} onKeyDown={(e) => handleKeyDown(e, inputM2, refH2)} />
+                            <span className="mx-1 opacity-20" style={{ color: 'var(--mission-text)' }}>=</span>
+                            <textarea 
+                                ref={refContent} 
+                                rows="1"
+                                placeholder="Add Mission..." 
+                                className="blank-input content-blank custom-scrollbar" 
+                                value={inputContent} 
+                                onChange={(e) => setInputContent(e.target.value)} 
+                                onKeyDown={(e) => handleKeyDown(e, inputContent, refM2)} 
+                            />
+                            <div onClick={addNewTask} className="unified-action-btn mr-1"><Icon name="plus" size={16} /></div>
+                        </div>
+                    </div>
+
+                    <div className={`mission-list-area notion-block system-fade ${isTaskSystemOpen && !isDiagnosing ? 'system-visible' : 'system-hidden'} ${!hasDragged ? 'is-anchored' : ''}`} 
+                         style={{ 
+                             left: hasDragged ? `${listPos.x}px` : undefined, 
+                             top: hasDragged ? `${listPos.y}px` : undefined, 
+                             bottom: !hasDragged ? `calc(2.5rem + ${inputHeight}px + 6px)` : undefined,
+                             opacity: (isTaskSystemOpen && !isDiagnosing) ? 1 : 0,
+                             pointerEvents: (isTaskSystemOpen && !isDiagnosing) ? 'auto' : 'none'
+                         }}>
+                        <div className="mission-header-row" onMouseDown={startDrag}>
+                            <h3 className="text-[8px] font-bold uppercase tracking-[0.3em] text-blue-500/60">Mission Assignments</h3>
+                            <div className="flex items-center gap-3">
+                                <div className="unified-action-btn" onClick={() => setTasks([])}><Icon name="trash" size={12} /></div>
+                                <div className="unified-action-btn" onClick={closeTaskSystem}><Icon name="close" size={16} /></div>
+                            </div>
+                        </div>
+                        
+                        <div className="task-list-container custom-scrollbar">
+                            {tasks.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center opacity-10">
+                                    <Icon name="target" size={20} className="text-blue-500" />
+                                    <p className="text-[7px] mt-1 font-bold tracking-[0.2em] uppercase">No Assignments</p>
+                                </div>
+                            ) : (
+                                tasks.map(task => (
+                                    <div 
+                                        key={task.id} 
+                                        className={`task-row group ${task.completed ? 'completed' : ''}`} 
+                                        onClick={() => toggleTaskComplete(task.id)}
+                                        onContextMenu={(e) => { e.preventDefault(); deleteTask(task.id); }}
+                                        title="右键点击删除"
+                                    >
+                                        <div className="check-circle">{task.completed && <Icon name="check" size={8} className="text-white" />}</div>
+                                        <span className="task-content-text">{task.content}</span>
+                                        <span className="task-time-text">{task.timeDisplay}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="labs-toolbar">
+                        <div className={`tool-icon ${isVignetteOn ? 'active' : ''}`} onClick={() => setIsVignetteOn(!isVignetteOn)}><Icon name="vignette" size={18} /></div>
+                        <div className={`tool-icon ${isFocusAnchorOn ? 'active' : ''} ${mode === 'SETUP' || isLabsDisabled ? 'disabled' : ''}`} onClick={() => mode !== 'SETUP' && !isLabsDisabled && setIsFocusAnchorOn(!isFocusAnchorOn)}><Icon name="target" size={18} /></div>
+                        <div className={`tool-icon ${isSproutOn ? 'active' : ''} ${mode === 'SETUP' || isLabsDisabled ? 'disabled' : ''}`} onClick={() => mode !== 'SETUP' && !isLabsDisabled && setIsSproutOn(!isSproutOn)}><Icon name="sprout" size={18} /></div>
+                    </div>
+
+                    <div className={`top-action-bar ${isLabsDisabled || !isFocusAnchorOn ? 'state-frozen' : ''}`}>
+                        {isFocusAnchorOn && mode !== 'SETUP' && !isLabsDisabled && (
+                            <div className="focus-input-group">
+                                <input type="text" placeholder="ANCHOR MISSION..." value={tempAnchor} onChange={(e) => setTempAnchor(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (setActiveAnchor(tempAnchor), e.target.blur())} className="focus-input" />
+                                <input type="text" placeholder="STREAM OF FEELING..." value={tempStream} onChange={(e) => setTempStream(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleStreamSubmitLocal()} className="focus-input !text-[0.55rem]" />
+                            </div>
+                        )}
+                    </div>
+
+                    {mode !== 'SETUP' && (
+                        <div className="bottom-action-bar px-10">
+                            <div className="flex gap-8">
+                                {mode === 'REST' ? ( <button onClick={handleFastReset} className="text-[9px] font-bold text-white/20 uppercase tracking-[0.4em]">End Recovery</button> ) : isDiagnosing ? ( <div className="h-8"></div> ) : (
+                                    <button onClick={toggleTimer} className={`icon-btn-compact ${mode === 'PAUSED' ? 'is-active' : ''}`}><Icon name={mode === 'PAUSED' ? 'play' : 'pause'} size={16} /></button>
+                                )}
+                                {!isDiagnosing && mode !== 'REST' && ( <button onClick={() => setMode('CHECKIN_1')} className="icon-btn-compact"><Icon name="skip" size={16} /></button> )}
+                            </div>
+                        </div>
+                    )}
+
+                    {!isDiagnosing && mode !== 'SETUP' && (
+                        <div className="fixed bottom-10 right-10 z-[470]">
+                            <button className={`icon-btn-compact ${!isTextVisible ? 'is-active' : ''}`} onClick={() => setIsTextVisible(!isTextVisible)}><Icon name={isTextVisible ? 'eye' : 'eyeOff'} size={16} /></button>
+                        </div>
+                    )}
+
+                    <div className="viewport-frame">
+                        <div className="text-center w-full max-w-2xl flex flex-col items-center">
+                            <div className="label-slot">
+                                <div className={`label-unified ${isLabelFrozen ? 'state-frozen' : ''} text-[9px] font-bold uppercase tracking-[0.6em]`} style={{ color: 'var(--accent-color)', opacity: 0.5 }}>
+                                    {mode === 'SETUP' ? 'Preparation' : (mode === 'PAUSED' ? 'Stillness' : (mode === 'REST' ? restPlan?.title : 'Focusing'))}
+                                </div>
+                            </div>
+                            <div className="timer-slot">
+                                {mode === 'SETUP' ? (
+                                    <div className="flex items-center gap-2 fade-in">
+                                        <button onClick={() => setDuration(Math.max(5, duration - 5))} className="p-2 opacity-20 hover:opacity-100 text-blue-600"><Icon name="minus" size={20}/></button>
+                                        <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 0)} className="editable-time-unified unified-timer-font" />
+                                        <button onClick={() => setDuration(Math.min(180, duration + 5))} className="p-2 opacity-20 hover:opacity-100 text-blue-600"><Icon name="plus" size={20}/></button>
+                                    </div>
+                                ) : (
+                                    <div className={`timer-unified unified-timer-font ${mode === 'REST' ? 'text-white/90' : 'text-slate-700'} ${isTimerFrozen ? 'state-frozen' : ''}`}>
+                                        {String(Math.floor(timeLeft/60)).padStart(2,'0')}:{String(timeLeft%60).padStart(2,'0')}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="info-slot">
+                                {mode === 'SETUP' ? ( 
+                                    <div className="fade-in">
+                                        <h2 className="text-xl font-medium tracking-tight text-slate-700 italic">ShinSegi</h2>
+                                        <span className="text-[11px] tracking-[0.2em] text-slate-500 font-medium block text-center mt-1">好好的</span>
+                                    </div> 
+                                ) : (
+                                    <p key={quote} className={`info-text-unified quote-animate ${isQuoteFrozen ? 'state-frozen' : ''}`} style={{ color: 'var(--accent-color)' }}> “{mode === 'REST' ? restPlan?.text : quote || QUOTES[0]}” </p>
+                                )}
+                            </div>
+                            <div className="h-12"> {mode === 'SETUP' && ( <button onClick={() => { setTimeLeft(duration * 60); setMode('RUNNING'); }} className="w-40 py-3.5 bg-slate-700 text-white rounded-xl font-medium text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95">Initiate</button> )} </div>
+                        </div>
+                        {isDiagnosing && (
+                            <div className="fixed inset-0 z-[500] flex items-center justify-center px-6 pointer-events-none">
+                                <div className="w-full max-w-[20rem] diagnose-modal p-10 fade-in rounded-[2rem] pointer-events-auto">
+                                    <div className="flex flex-col items-center mb-6 opacity-30"><Icon name="waves" size={24} /></div>
+                                    <h2 className="text-sm font-medium text-gray-600 mb-8 text-center">{mode === 'CHECKIN_1' ? "此时，身体感觉如何？" : "此时，思维清晰度？"}</h2>
+                                    <div className="space-y-0.5">{(mode === 'CHECKIN_1' ? SENSING_BODY : SENSING_MIND).map((opt, i) => (<button key={i} onClick={() => handleCheckin(opt.score, mode === 'CHECKIN_1' ? 'CHECKIN_2' : null)} className="w-full p-3.5 text-left text-[12px] flex justify-between items-center group"><span className="text-gray-400 group-hover:text-blue-600 transition-colors">{opt.label}</span><Icon name="arrow" size={10} className="text-blue-400 opacity-0 group-hover:opacity-100" /></button>))}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
